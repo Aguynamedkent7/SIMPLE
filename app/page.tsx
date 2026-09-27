@@ -33,7 +33,8 @@ export default async function Home({ searchParams }: {
   return (
     <MoneyScreen
       month={new Intl.DateTimeFormat('en-AU', { month: 'long', timeZone: BUSINESS_TZ }).format()}
-      demo={claims.data?.claims.is_anonymous === true}
+      // null for the demo; otherwise the account's email, so a typo'd sign-in is obvious.
+      email={claims.data?.claims.is_anonymous ? null : claims.data?.claims.email ?? null}
       totals={{ moneyIn: Number(totals.data.money_in), moneyOut: Number(totals.data.money_out) }}
       recent={rows.slice(0, show)}
       show={show}

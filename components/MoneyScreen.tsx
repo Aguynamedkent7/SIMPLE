@@ -26,9 +26,9 @@ function apply(state: State, change: Change): State {
     : { ...state, moneyOut: state.moneyOut + delta, recent }
 }
 
-export default function MoneyScreen({ month, demo, totals, recent, show, more, customers }: {
+export default function MoneyScreen({ month, email, totals, recent, show, more, customers }: {
   month: string
-  demo: boolean
+  email: string | null
   totals: Totals
   recent: Entry[]
   show: number
@@ -91,9 +91,9 @@ export default function MoneyScreen({ month, demo, totals, recent, show, more, c
           <button className="-mr-3 h-12 px-3 text-[15px] font-medium text-steel">Sign out</button>
         </form>
       </header>
-      {demo && (
-        <p className="text-[15px] text-steel">Sample month to try. Signing out clears it.</p>
-      )}
+      <p className="truncate text-[15px] text-steel">
+        {email ? `Signed in as ${email}` : 'Sample month to try. Signing out clears it.'}
+      </p>
 
       <ProfitHero moneyIn={state.moneyIn} moneyOut={state.moneyOut} />
 

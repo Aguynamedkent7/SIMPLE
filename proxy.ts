@@ -1,6 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-import { supabaseEnv } from '@/lib/supabase/server'
+import { cookieOptions, supabaseEnv } from '@/lib/supabase/server'
 
 // Refreshes the Supabase session on every page request and keeps signed-out people on /login.
 export async function proxy(request: NextRequest) {
@@ -8,6 +8,7 @@ export async function proxy(request: NextRequest) {
   const supabase = createServerClient(
     ...supabaseEnv(),
     {
+      cookieOptions,
       cookies: {
         getAll: () => request.cookies.getAll(),
         setAll(cookiesToSet, headers) {
@@ -25,7 +26,9 @@ export async function proxy(request: NextRequest) {
   const signedIn = Boolean(data?.claims)
   const onLogin = request.nextUrl.pathname === '/login'
 
-  const to = !signedIn && !onLogin ? '/login' : signedIn && onLogin ? '/' : null
+  // Server Actions answer for themselves ("You've been signed out…"); a redirect would only confuse them.
+  const isAction = request.headers.has('next-action')
+  const to = isAction ? null : !signedIn && !onLogin ? '/login' : signedIn && onLogin ? '/' : null
   if (!to) return response
   // Carry any refreshed session cookies across the redirect.
   const redirect = NextResponse.redirect(new URL(to, request.url))

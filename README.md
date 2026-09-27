@@ -45,6 +45,15 @@ Tap **Try it now**, then **Job done**.
   picks each entry's UUID, so Undo can find the row without waiting for the server.
 - **Row level security does the access control.** Every query runs as the signed-in user; the
   policies only allow reading, adding and deleting your own rows. There is no update policy.
+- **Security.** Session cookies are `httpOnly`, `Secure` and `SameSite=Lax`, so page scripts can't read
+  them. Every response sends a CSP with `frame-ancestors 'none'`, plus `X-Frame-Options`, `nosniff`
+  and a strict referrer policy. Server Actions validate every field with zod, including rejecting
+  control characters and future dates. They also check the session before writing, so an expired
+  session says so plainly. The database repeats the important rules as `check` constraints, because
+  the Supabase API can be called directly with a user's token.
+- **Errors say what to fix.** Every form error sits under the field it's about and names the fix
+  ("Add the price.", "Your password needs at least 8 characters."). If the page itself can't load,
+  a plain "Try again" screen replaces Next's default.
 - **Server-only Supabase.** All Supabase calls happen in Server Components, Server Actions and
   `proxy.ts`, so there's no browser client and no `NEXT_PUBLIC_` env vars.
 - **Next.js 16.** `middleware.ts` is now `proxy.ts`; it refreshes the session and keeps
@@ -71,7 +80,8 @@ npm run dev
 In the Supabase dashboard (Authentication → Sign In / Providers):
 
 - Turn on **Anonymous sign-ins** (powers Try it now).
-- Keep **Email** on and turn **Confirm email** off for the test build.
+- Keep **Email** on and turn **Confirm email** off for the test build. Set the minimum password
+  length to 8 to match the app.
 - Anonymous sign-ins are rate limited per IP (30/hour by default, under Rate Limits), which
   stops the demo being abused. Turn on CAPTCHA protection if it ever is.
 - Set the **Site URL** and redirect URLs to the deployed domain.

@@ -9,12 +9,20 @@ export function supabaseEnv(): [url: string, key: string] {
   return [url, key]
 }
 
+/** Session cookies are for the server only: JavaScript can't read them, so an XSS bug can't steal them. */
+export const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax',
+} as const
+
 /** Supabase client for Server Components and Server Actions, bound to the request's cookies. */
 export async function createClient() {
   const cookieStore = await cookies()
   return createServerClient(
     ...supabaseEnv(),
     {
+      cookieOptions,
       cookies: {
         getAll: () => cookieStore.getAll(),
         setAll(cookiesToSet) {

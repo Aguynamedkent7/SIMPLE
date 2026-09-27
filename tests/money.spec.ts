@@ -92,20 +92,29 @@ test('the customer field suggests past customers', async ({ page }) => {
   await expect(page.getByRole('textbox', { name: 'Job', exact: true })).toBeFocused()
 })
 
-test('Save job stays disabled until the price is valid', async ({ page }) => {
+test('Save job says exactly what is missing or wrong', async ({ page }) => {
   await tryItNow(page)
   await page.getByRole('button', { name: 'Job done' }).click()
+  const save = page.getByRole('button', { name: 'Save job' })
+  const price = page.getByRole('textbox', { name: 'Price', exact: true })
+
+  await save.click()
+  await expect(page.getByText('Add who the job was for.')).toBeVisible()
+  await expect(page.getByText('Add what the job was.')).toBeVisible()
+  await expect(page.getByText('Add the price.')).toBeVisible()
+  await expect(page.getByRole('textbox', { name: 'Customer', exact: true })).toBeFocused()
+
   await page.getByRole('textbox', { name: 'Customer', exact: true }).fill('Walsh')
   await page.getByRole('textbox', { name: 'Job', exact: true }).fill('Hot water system')
-  const save = page.getByRole('button', { name: 'Save job' })
-  for (const bad of ['', '0', 'abc', '-50']) {
-    await page.getByRole('textbox', { name: 'Price', exact: true }).fill(bad)
-    await expect(save).toBeDisabled()
+  await expect(page.getByText('Add who the job was for.')).toHaveCount(0)
+  for (const bad of ['0', 'abc', '-50', '12,5', '385.555']) {
+    await price.fill(bad)
+    await expect(page.getByText('Dollars and cents only')).toBeVisible()
+    await expect(price).toHaveAttribute('aria-invalid', 'true')
   }
-  await expect(page.getByText('Dollars and cents only')).toBeVisible()
-  await page.getByRole('textbox', { name: 'Price', exact: true }).fill('850')
-  await expect(save).toBeEnabled()
+  await price.fill('850')
   await expect(page.getByText('Dollars and cents only')).toBeHidden()
+  await expect(price).toHaveAttribute('aria-invalid', 'false')
 
   // Back (or an iOS edge swipe) closes the sheet and stays in the app.
   await page.goBack()
@@ -143,6 +152,7 @@ test('email: a new address makes an account, then signs back in', async ({ page 
   await expect(page.getByText('No jobs yet this month. Tap Job done when you finish one.'))
     .toBeVisible({ timeout: 10_000 })
   await expect(page.getByTestId('profit')).toHaveText('$0.00')
+  await expect(page.getByText(`Signed in as ${email}`)).toBeVisible()
 
   await page.getByRole('button', { name: 'Sign out' }).click()
   await expect(page).toHaveURL(/\/login$/)
@@ -166,8 +176,10 @@ test('email: bad input gets a plain fix-it message', async ({ page }) => {
   await expect(page.getByRole('alert').filter({ hasText: 'email' }))
     .toHaveText('Enter a full email address, like sam@example.com.')
   await page.getByRole('textbox', { name: 'Email' }).fill('sam@example.com')
-  await page.getByLabel('Password').fill('123')
+  await page.getByLabel('Password').fill('1234567')
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await expect(page.getByRole('alert').filter({ hasText: 'characters' }))
-    .toHaveText('Your password needs at least 6 characters.')
+    .toHaveText('Your password needs at least 8 characters.')
+  await expect(page.getByLabel('Password')).toBeFocused()
+  await expect(page.getByLabel('Password')).toHaveAttribute('aria-invalid', 'true')
 })
