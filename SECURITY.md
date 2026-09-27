@@ -85,7 +85,8 @@ business's numbers, because Postgres refuses first.
 | Security Advisor / Performance Advisor | Run after migrating. `supabase db lint` is clean locally. |
 | Backups | Daily backups (all plans); Point-in-Time Recovery is a paid add-on and a production step |
 
-Vercel only needs `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` and `NEXT_PUBLIC_TURNSTILE_SITE_KEY`.
+Vercel only needs `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` and `TURNSTILE_SITE_KEY`, all server-side
+(no `NEXT_PUBLIC_` variables: nothing from the environment is baked into the JS bundle).
 The Turnstile widget stays hidden unless Cloudflare needs a tap, and renders nothing when no site
 key is set.
 

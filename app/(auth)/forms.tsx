@@ -13,7 +13,7 @@ const input = 'mt-1.5 h-14 w-full rounded-xl border-2 border-line bg-surface px-
 const primary = 'h-14 w-full rounded-2xl bg-ink font-semibold text-concrete active:scale-[0.98] disabled:opacity-70'
 const quiet = 'flex h-12 items-center justify-center font-medium text-steel'
 
-export function LoginForm({ notice }: { notice?: string }) {
+export function LoginForm({ notice, siteKey }: { notice?: string; siteKey?: string }) {
   const [state, action, pending] = useActionState(logIn, {})
   const form = useFocusError(state)
   return (
@@ -22,7 +22,7 @@ export function LoginForm({ notice }: { notice?: string }) {
       <Field name="email" label="Email" type="email" autoComplete="email" inputMode="email"
         maxLength={254} state={state} />
       <PasswordField label="Password" autoComplete="current-password" state={state} />
-      <Turnstile reset={state} />
+      <Turnstile siteKey={siteKey} reset={state} />
       <FormError state={state} />
       <button disabled={pending} className={primary}>{pending ? 'Logging in…' : 'Log in'}</button>
       <div className="flex justify-between">
@@ -33,7 +33,7 @@ export function LoginForm({ notice }: { notice?: string }) {
   )
 }
 
-export function SignupForm() {
+export function SignupForm({ siteKey }: { siteKey?: string }) {
   const [state, action, pending] = useActionState(signUp, {})
   const form = useFocusError(state)
   if (state.done) return <Done message={state.done} />
@@ -44,7 +44,7 @@ export function SignupForm() {
       <Field name="email" label="Email" type="email" autoComplete="email" inputMode="email"
         maxLength={254} state={state} />
       <PasswordField label="Password" autoComplete="new-password" state={state} />
-      <Turnstile reset={state} />
+      <Turnstile siteKey={siteKey} reset={state} />
       <FormError state={state} />
       <button disabled={pending} className={primary}>{pending ? 'Creating…' : 'Create account'}</button>
       <Link href="/login" className={quiet}>Already have an account? Log in</Link>
@@ -52,7 +52,7 @@ export function SignupForm() {
   )
 }
 
-export function ResetForm() {
+export function ResetForm({ siteKey }: { siteKey?: string }) {
   const [state, action, pending] = useActionState(requestReset, {})
   const form = useFocusError(state)
   if (state.done) return <Done message={state.done} />
@@ -60,7 +60,7 @@ export function ResetForm() {
     <form ref={form} action={action} className="mt-auto space-y-4 pt-12" noValidate>
       <Field name="email" label="Email" type="email" autoComplete="email" inputMode="email"
         maxLength={254} state={state} />
-      <Turnstile reset={state} />
+      <Turnstile siteKey={siteKey} reset={state} />
       <FormError state={state} />
       <button disabled={pending} className={primary}>{pending ? 'Sending…' : 'Send reset link'}</button>
       <Link href="/login" className={quiet}>Back to log in</Link>

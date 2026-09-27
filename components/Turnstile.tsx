@@ -2,8 +2,6 @@
 
 import { useEffect, useRef } from 'react'
 
-const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
-
 type TurnstileApi = {
   render: (el: HTMLElement, options: Record<string, unknown>) => string
   reset: (id: string) => void
@@ -24,21 +22,21 @@ function loadTurnstile() {
 }
 
 /** Cloudflare Turnstile bot check. Invisible unless Cloudflare wants a tap. It adds a hidden
- * `cf-turnstile-response` field to the form, which Supabase Auth verifies. Renders nothing
- * when NEXT_PUBLIC_TURNSTILE_SITE_KEY isn't set (local dev, where Auth has CAPTCHA off).
+ * `cf-turnstile-response` field to the form, which Supabase Auth verifies. The site key comes
+ * from the server (TURNSTILE_SITE_KEY); without one it renders nothing (local dev, CAPTCHA off).
  * Tokens are single-use: pass a new `reset` value after each submit to get a fresh one. */
-export default function Turnstile({ reset }: { reset: unknown }) {
+export default function Turnstile({ siteKey, reset }: { siteKey?: string; reset: unknown }) {
   const box = useRef<HTMLDivElement>(null)
   const widget = useRef<{ api: TurnstileApi; id: string } | null>(null)
 
   useEffect(() => {
-    if (!SITE_KEY) return
+    if (!siteKey) return
     let gone = false
     loadTurnstile().then((api) => {
       if (gone || !box.current) return
       widget.current = {
         api,
-        id: api.render(box.current, { sitekey: SITE_KEY, size: 'flexible', appearance: 'interaction-only' }),
+        id: api.render(box.current, { sitekey: siteKey, size: 'flexible', appearance: 'interaction-only' }),
       }
     }).catch(() => {}) // the server's "couldn't check you're a person" message covers it
     return () => {
@@ -46,11 +44,11 @@ export default function Turnstile({ reset }: { reset: unknown }) {
       if (widget.current) widget.current.api.remove(widget.current.id)
       widget.current = null
     }
-  }, [])
+  }, [siteKey])
 
   useEffect(() => {
     if (widget.current) widget.current.api.reset(widget.current.id)
   }, [reset])
 
-  return SITE_KEY ? <div ref={box} /> : null
+  return siteKey ? <div ref={box} /> : null
 }

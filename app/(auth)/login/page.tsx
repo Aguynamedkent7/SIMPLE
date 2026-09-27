@@ -8,7 +8,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       <Heading title="Know where your month stands.">
         Money in, money out, and what you kept. One screen.
       </Heading>
-      <LoginForm notice={expired ? 'That link has expired or was already used. Log in, or ask for a new reset link.' : undefined} />
+      <LoginForm siteKey={process.env.TURNSTILE_SITE_KEY} notice={expired ? 'That link has expired or was already used. Log in, or ask for a new reset link.' : undefined} />
     </>
   )
 }
