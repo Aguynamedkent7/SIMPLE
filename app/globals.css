@@ -1,26 +1,113 @@
 @import "tailwindcss";
 
+/* Job-site palette. Every text colour passes WCAG AA on its background. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --concrete: #ecede9;
+  --surface: #f8f8f5;
+  --line: #d6d8d2;
+  --ink: #1b2226;
+  --steel: #566066;
+  --hivis: #ffc928;
+  --hivis-press: #f0b800;
+  --black-green: #0b7a41;
+  --red: #b42a26;
+  color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --concrete: #151b1e;
+    --surface: #1f272b;
+    --line: #2e383d;
+    --ink: #eef0ec;
+    --steel: #9aa3a8;
+    --black-green: #3dd68c;
+    --red: #ff6b61;
+    color-scheme: dark;
   }
 }
 
+@theme inline {
+  --color-concrete: var(--concrete);
+  --color-surface: var(--surface);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-steel: var(--steel);
+  --color-hivis: var(--hivis);
+  --color-hivis-press: var(--hivis-press);
+  --color-black-green: var(--black-green);
+  --color-red: var(--red);
+  --font-sans: var(--font-barlow);
+  --font-sign: var(--font-barlow-condensed);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--concrete);
+  color: var(--ink);
+  font-size: 1.0625rem;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}
+
+:focus-visible:not(input) {
+  outline: 3px solid var(--ink);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+button {
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.num {
+  font-family: var(--font-barlow-condensed);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Bottom sheet: native <dialog> gives focus trapping, Esc and the backdrop for free. */
+dialog.sheet {
+  margin: auto auto var(--kb, 0px);
+  width: 100%;
+  max-width: 480px;
+  max-height: calc(100dvh - var(--kb, 0px) - 24px);
+  padding: 0 0 env(safe-area-inset-bottom);
+  border-radius: 22px 22px 0 0;
+  background: var(--surface);
+  color: var(--ink);
+  overscroll-behavior: contain;
+}
+dialog.sheet[open] {
+  animation: sheet-in 420ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+dialog.sheet[data-closing] {
+  animation: sheet-out 200ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+dialog.sheet::backdrop {
+  background: rgb(10 14 16 / 0.5);
+  animation: fade-in 300ms ease-out;
+}
+dialog.sheet[data-closing]::backdrop {
+  animation: fade-in 200ms ease-in reverse forwards;
+}
+
+@keyframes sheet-in {
+  from { transform: translateY(100%); }
+}
+@keyframes sheet-out {
+  to { transform: translateY(100%); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+}
+@keyframes toast-in {
+  from { transform: translateY(12px); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after, dialog.sheet::backdrop {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
 }
