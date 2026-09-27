@@ -17,50 +17,6 @@ Tap **Try it now**, then **Job done**.
   <img src="docs/money-dark.png" width="200" alt="Money screen, dark mode">
 </p>
 
-## What I left out, and why
-
-- **GST and tax breakdown.** One number a tradie trusts beats three they have to think about.
-- **Charts and history.** "How's this month going?" is the only question this screen answers.
-- **Expense categories and tags.** Nobody sorts receipts at the ute. What-for plus amount is enough.
-- **Editing entries.** Delete and re-add, with Undo, covers it without a second form.
-- **Settings, profile, onboarding, a menu.** The only thing to do besides log money is sign out.
-- **Invoices, quotes, a customers page.** They belong in the full product, not on this screen.
-- **Offline queue and realtime multi-device sync.** If you're offline it says so plainly instead of
-  pretending it saved.
-- **Password reset and email confirmation.** Out of scope for a test build (see Auth below).
-
-## Decisions
-
-- **Cents as integers.** Every amount is an `integer` of cents in Postgres and in TypeScript.
-  `lib/money.ts` is the only place that turns "850.50" into 85050 and back.
-- **The month is Sydney's month.** Month boundaries are computed in Postgres in
-  `Australia/Sydney`, not UTC, so a job at 8am on the 1st lands in the right month
-  (`month_start`, `month_entries`, `month_totals` in `supabase/migrations`).
-- **Anonymous demo.** "Try it now" signs in anonymously and seeds a realistic month (`seed_demo`),
-  so the reviewer sees a real screen in about a second. Email sign-in is one form that signs in
-  or creates the account.
-- **Optimistic UI.** `useOptimistic` updates totals and the list the moment Save is tapped. The
-  server action runs behind it; if it fails, the screen rolls back and says why.
-- **Undo instead of confirm dialogs.** Every save and delete shows a 5 second Undo. The client
-  picks each entry's UUID, so Undo can find the row without waiting for the server.
-- **Row level security does the access control.** Every query runs as the signed-in user; the
-  policies only allow reading, adding and deleting your own rows. There is no update policy.
-- **Security.** Session cookies are `httpOnly`, `Secure` and `SameSite=Lax`, so page scripts can't read
-  them. Every response sends a CSP with `frame-ancestors 'none'`, plus `X-Frame-Options`, `nosniff`
-  and a strict referrer policy. Server Actions validate every field with zod, including rejecting
-  control characters and future dates. They also check the session before writing, so an expired
-  session says so plainly. The database repeats the important rules as `check` constraints, because
-  the Supabase API can be called directly with a user's token.
-- **Errors say what to fix.** Every form error sits under the field it's about and names the fix
-  ("Add the price.", "Your password needs at least 8 characters."). If the page itself can't load,
-  a plain "Try again" screen replaces Next's default.
-- **Server-only Supabase.** All Supabase calls happen in Server Components, Server Actions and
-  `proxy.ts`, so there's no browser client and no `NEXT_PUBLIC_` env vars.
-- **Next.js 16.** `middleware.ts` is now `proxy.ts`; it refreshes the session and keeps
-  signed-out visitors on `/login`.
-- **Few dependencies.** Next.js, React, Tailwind, `@supabase/ssr`, zod. The bottom sheet is a
-  native `<dialog>`, the count-up is `requestAnimationFrame`, suggestions are plain buttons.
-
 ## Stack
 
 Next.js 16 (App Router, Server Actions) · Supabase (Auth + Postgres) · Tailwind CSS 4 ·
@@ -77,39 +33,3 @@ npx supabase db push         # applies supabase/migrations
 npm run dev
 ```
 
-In the Supabase dashboard (Authentication → Sign In / Providers):
-
-- Turn on **Anonymous sign-ins** (powers Try it now).
-- Keep **Email** on and turn **Confirm email** off for the test build. Set the minimum password
-  length to 8 to match the app.
-- Anonymous sign-ins are rate limited per IP (30/hour by default, under Rate Limits), which
-  stops the demo being abused. Turn on CAPTCHA protection if it ever is.
-- Set the **Site URL** and redirect URLs to the deployed domain.
-
-For Vercel, set the same two env vars: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`.
-`vercel.json` pins functions to `bom1` (Mumbai), next to the database in `ap-south-1`; move both
-to Sydney (`syd1` / `ap-southeast-2`) for Australian users.
-
-Supabase sees every sign-in coming from Vercel's servers, so the anonymous rate limit is shared by
-everyone using the demo, not per visitor.
-
-## Tests
-
-```bash
-npm run test:unit   # lib/money.ts parsing and formatting (node:test, no browser)
-npm run test:e2e    # Playwright, iPhone 14 viewport, against the Supabase project in .env.local
-```
-
-The end-to-end suite covers Try it now, adding a job, Undo, going into the red, delete and Undo,
-customer suggestions, price validation, email sign-up and sign-in (including a wrong password),
-a signed-out redirect, and that one user can't see
-another's entries. It runs against a production build (`next build && next start`), or against a
-deployment with `BASE_URL=https://simple-tau-gold.vercel.app npm run test:e2e` (all 11 pass).
-
-Lighthouse, mobile, on the live site (performance / accessibility / best practices):
-login 98 / 100 / 100, money screen 96 / 100 / 100.
-
-Each run signs in 11 anonymous users and creates 1 email user. Supabase allows 30 anonymous
-sign-ins per hour per IP by default, so a third run inside an hour fails with "Too many tries"
-(the app's rate-limit message).
-Raise the limit under Authentication → Rate Limits while testing if you need to.
