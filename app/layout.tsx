@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Barlow, Barlow_Condensed } from 'next/font/google'
+import { connection } from 'next/server'
 import './globals.css'
 
 const barlow = Barlow({
@@ -29,7 +30,9 @@ export const viewport: Viewport = {
   ],
 }
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  // Render every page per request, so each one gets the CSP nonce from proxy.ts.
+  await connection()
   return (
     <html lang="en-AU" className={`${barlow.variable} ${barlowCondensed.variable}`}>
       <body className="min-h-svh font-sans antialiased">{children}</body>

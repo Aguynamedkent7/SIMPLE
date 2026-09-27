@@ -1,5 +1,6 @@
 import MoneyScreen from '@/components/MoneyScreen'
 import { BUSINESS_TZ, ENTRY_COLUMNS, PAGE_SIZE, type Entry } from '@/lib/entries'
+import { requireBusiness } from '@/lib/business'
 import { createClient } from '@/lib/supabase/server'
 
 export default async function Home({ searchParams }: {
@@ -8,13 +9,15 @@ export default async function Home({ searchParams }: {
   // ?show=24 after two taps of Load more. Whole pages only, capped so a hand-typed URL can't ask for everything.
   const show = Math.min(Math.max(Math.ceil(Number((await searchParams).show) / PAGE_SIZE) || 1, 1), 50) * PAGE_SIZE
   const supabase = await createClient()
+  const business = await requireBusiness(supabase)
   const [claims, totals, recent, pastCustomers] = await Promise.all([
     supabase.auth.getClaims(),
-    supabase.rpc('month_totals', { tz: BUSINESS_TZ }).single<{ money_in: number; money_out: number }>(),
-    supabase.rpc('month_entries', { tz: BUSINESS_TZ }).select(ENTRY_COLUMNS)
+    supabase.rpc('month_totals', { bid: business.id, tz: BUSINESS_TZ })
+      .single<{ money_in: number; money_out: number }>(),
+    supabase.rpc('month_entries', { bid: business.id, tz: BUSINESS_TZ }).select(ENTRY_COLUMNS)
       .order('occurred_at', { ascending: false }).limit(show + 1), // one extra tells us there's more
     // ponytail: scans the last 500 jobs for names; a distinct SQL view if customer lists get huge.
-    supabase.from('entries').select('customer').eq('type', 'in')
+    supabase.from('entries').select('customer').eq('business_id', business.id).eq('type', 'in')
       .order('occurred_at', { ascending: false }).limit(500).overrideTypes<{ customer: string }[]>(),
   ])
   if (claims.error) throw claims.error
@@ -33,7 +36,8 @@ export default async function Home({ searchParams }: {
   return (
     <MoneyScreen
       month={new Intl.DateTimeFormat('en-AU', { month: 'long', timeZone: BUSINESS_TZ }).format()}
-      email={claims.data?.claims.is_anonymous ? null : claims.data?.claims.email ?? null}
+      business={business.name}
+      email={claims.data?.claims.email ?? ''}
       totals={{ moneyIn: Number(totals.data.money_in), moneyOut: Number(totals.data.money_out) }}
       recent={rows.slice(0, show)}
       show={show}

@@ -1,7 +1,8 @@
 import { defineConfig, devices } from '@playwright/test'
+import { SUPABASE_KEY, SUPABASE_URL } from './tests/support'
 
-// End-to-end tests run against a real Supabase project (the one in .env.local).
-// BASE_URL=https://… npm run test:e2e runs them against a deployment instead of a local build.
+// End-to-end tests run against LOCAL Supabase (`npx supabase start`), never production:
+// they read confirmation emails from the local Mailpit inbox.
 const baseURL = process.env.BASE_URL
 export default defineConfig({
   testDir: 'tests',
@@ -13,10 +14,11 @@ export default defineConfig({
     baseURL: baseURL ?? 'http://localhost:3000',
   },
   webServer: baseURL ? undefined : {
-    // Production build: the 3 second "Try it now" budget is about the real app, not dev compiles.
+    // Production build, so the CSP and headers under test are the real ones.
     command: 'npm run build && npm run start',
+    env: { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY: SUPABASE_KEY },
     url: 'http://localhost:3000/login',
-    reuseExistingServer: true,
+    reuseExistingServer: !process.env.CI,
     timeout: 180_000,
   },
 })

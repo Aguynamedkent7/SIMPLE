@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useOptimistic, useRef, useState, useTransition } from 'react'
 import { flushSync } from 'react-dom'
-import { addEntry, deleteEntry, signOut, type ActionResult } from '@/app/actions'
+import Link from 'next/link'
+import { addEntry, deleteEntry, signOut, signOutEverywhere, type ActionResult } from '@/app/actions'
 import type { Entry, Totals } from '@/lib/entries'
 import EntrySheet, { type EntryKind, type NewEntry } from './EntrySheet'
 import ProfitHero, { label } from './ProfitHero'
@@ -26,9 +27,10 @@ function apply(state: State, change: Change): State {
     : { ...state, moneyOut: state.moneyOut + delta, recent }
 }
 
-export default function MoneyScreen({ month, email, totals, recent, show, more, customers }: {
+export default function MoneyScreen({ month, business, email, totals, recent, show, more, customers }: {
   month: string
-  email: string | null
+  business: string
+  email: string
   totals: Totals
   recent: Entry[]
   show: number
@@ -87,13 +89,17 @@ export default function MoneyScreen({ month, email, totals, recent, show, more, 
     <main className="mx-auto flex min-h-svh max-w-[480px] flex-col px-6 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[calc(10rem+env(safe-area-inset-bottom))]">
       <header className="flex items-center justify-between">
         <h1 className="font-sign text-[2rem] font-bold">{month}</h1>
-        <form action={signOut}>
-          <button className="-mr-3 h-12 px-3 text-[15px] font-medium text-steel">Sign out</button>
-        </form>
+        <button popoverTarget="account" className="-mr-3 h-12 px-3 text-[15px] font-medium text-steel">
+          Menu
+        </button>
+        <div id="account" popover="auto" className="menu">
+          <p className="truncate px-4 pt-3 pb-2 text-sm text-steel">{email}</p>
+          <Link href="/account/2-step" className="menu-item">2-step login</Link>
+          <form action={signOut}><button className="menu-item">Log out</button></form>
+          <form action={signOutEverywhere}><button className="menu-item">Log out everywhere</button></form>
+        </div>
       </header>
-      <p className="truncate text-[15px] text-steel">
-        {email ? `Signed in as ${email}` : 'Sample month to try. Signing out clears it.'}
-      </p>
+      <p className="truncate text-[15px] text-steel">{business}</p>
 
       <ProfitHero moneyIn={state.moneyIn} moneyOut={state.moneyOut} />
 
