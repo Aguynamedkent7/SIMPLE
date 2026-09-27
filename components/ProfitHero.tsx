@@ -10,6 +10,7 @@ export default function ProfitHero({ moneyIn, moneyOut }: { moneyIn: number; mon
         <h2 className="text-lg font-semibold">Profit</h2>
         <CountUp
           cents={profit}
+          testId="profit"
           className="-ml-0.5 text-[clamp(4rem,20vw,7rem)] leading-[0.95] font-extrabold tracking-tight"
         />
         <p aria-live="polite" className="mt-1 text-lg font-semibold">
@@ -19,11 +20,11 @@ export default function ProfitHero({ moneyIn, moneyOut }: { moneyIn: number; mon
       <dl className="mt-7 grid grid-cols-2 gap-4 border-t-2 border-line pt-5">
         <div>
           <dt className="text-steel">In</dt>
-          <dd><CountUp cents={moneyIn} className="text-[2rem] leading-tight font-bold" /></dd>
+          <dd><CountUp cents={moneyIn} testId="in" className="text-[2rem] leading-tight font-bold" /></dd>
         </div>
         <div>
           <dt className="text-steel">Out</dt>
-          <dd><CountUp cents={moneyOut} className="text-[2rem] leading-tight font-bold" /></dd>
+          <dd><CountUp cents={moneyOut} testId="out" className="text-[2rem] leading-tight font-bold" /></dd>
         </div>
       </dl>
     </section>

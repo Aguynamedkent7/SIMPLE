@@ -6,7 +6,11 @@ import { formatCents } from '@/lib/money'
 const DURATION = 700
 
 /** Shows cents as money; when the value changes it counts to the new one and pulses once. */
-export default function CountUp({ cents, className }: { cents: number; className?: string }) {
+export default function CountUp({ cents, className, testId }: {
+  cents: number
+  className?: string
+  testId?: string
+}) {
   const [shown, setShown] = useState(cents)
   const current = useRef(cents) // what's on screen, so an interrupted count resumes from there
   const el = useRef<HTMLSpanElement>(null)
@@ -34,7 +38,7 @@ export default function CountUp({ cents, className }: { cents: number; className
   }, [cents])
 
   return (
-    <span ref={el} className={`num inline-block origin-left ${className ?? ''}`}>
+    <span ref={el} data-testid={testId} className={`num inline-block origin-left ${className ?? ''}`}>
       {formatCents(shown)}
     </span>
   )
