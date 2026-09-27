@@ -91,13 +91,14 @@ npm run test:e2e    # Playwright, iPhone 14 viewport, against the Supabase proje
 ```
 
 The end-to-end suite covers Try it now, adding a job, Undo, going into the red, delete and Undo,
-customer suggestions, price validation, a signed-out redirect, and that one user can't see
+customer suggestions, price validation, email sign-up and sign-in (including a wrong password),
+a signed-out redirect, and that one user can't see
 another's entries. It runs against a production build (`next build && next start`), or against a
-deployment with `BASE_URL=https://simple-tau-gold.vercel.app npm run test:e2e` (all 9 pass).
+deployment with `BASE_URL=https://simple-tau-gold.vercel.app npm run test:e2e` (all 11 pass).
 
 Lighthouse, mobile, on the live site (performance / accessibility / best practices):
 login 98 / 100 / 100, money screen 96 / 100 / 100.
 
-Each run signs in 11 anonymous users. Supabase allows 30 anonymous sign-ins per hour per IP by
+Each run signs in 11 anonymous users and creates 1 email user. Supabase allows 30 anonymous sign-ins per hour per IP by
 default, so a third run inside an hour fails with "Too many tries" (the app's rate-limit message).
 Raise the limit under Authentication → Rate Limits while testing if you need to.
