@@ -111,3 +111,46 @@ test('one user cannot see another user’s entries', async ({ browser }) => {
   await b.getByRole('textbox', { name: 'Customer', exact: true }).fill('Private')
   await expect(b.getByRole('button', { name: secret })).toHaveCount(0)
 })
+
+test('email: a new address makes an account, then signs back in', async ({ page }) => {
+  const email = `tradie.${Date.now()}@gmail.com`
+  const signIn = async (password: string) => {
+    await page.goto('/login')
+    await page.getByText('Sign in with email').click()
+    await page.getByRole('textbox', { name: 'Email' }).fill(email)
+    await page.getByLabel('Password').fill(password)
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+  }
+
+  await signIn('hotwater42')
+  await expect(page.getByText('No jobs yet this month. Tap Job done when you finish one.'))
+    .toBeVisible({ timeout: 10_000 })
+  await expect(page.getByTestId('profit')).toHaveText('$0')
+
+  await page.getByRole('button', { name: 'Sign out' }).click()
+  await expect(page).toHaveURL(/\/login$/)
+
+  await signIn('wrong-password')
+  await expect(page.getByRole('alert').filter({ hasText: 'password' }))
+    .toHaveText('That password doesn’t match this email. Try again.')
+  await expect(page.getByRole('textbox', { name: 'Email' })).toHaveValue(email)
+
+  await page.getByLabel('Password').fill('hotwater42')
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+  await expect(page.getByTestId('profit')).toHaveText('$0', { timeout: 10_000 })
+})
+
+test('email: bad input gets a plain fix-it message', async ({ page }) => {
+  await page.goto('/login')
+  await page.getByText('Sign in with email').click()
+  await page.getByRole('textbox', { name: 'Email' }).fill('sam@')
+  await page.getByLabel('Password').fill('hotwater42')
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+  await expect(page.getByRole('alert').filter({ hasText: 'email' }))
+    .toHaveText('Enter a full email address, like sam@example.com.')
+  await page.getByRole('textbox', { name: 'Email' }).fill('sam@example.com')
+  await page.getByLabel('Password').fill('123')
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+  await expect(page.getByRole('alert').filter({ hasText: 'characters' }))
+    .toHaveText('Your password needs at least 6 characters.')
+})
