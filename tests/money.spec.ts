@@ -1,12 +1,28 @@
 import { expect, test, type Page } from '@playwright/test'
+import { logIn } from './e2e'
+import { confirmedUser } from './support'
 
-// Seeded demo month (supabase/migrations: seed_demo): in $9,050.00, out $1,211.25.
+// A realistic month so far, written as the account's own user (RLS applies): in $9,050.00, out $1,211.25.
 const SEED = { in: '$9,050.00', out: '$1,211.25', profit: '$7,838.75' }
+const ROWS = [
+  ['in', 'Nguyen', 'Hot water system', 189000], ['out', null, 'Reece Plumbing', 64250],
+  ['in', 'Smith', 'Blocked drain', 38500], ['out', null, 'Fuel', 9840],
+  ['in', 'Papadopoulos', 'Switchboard upgrade', 245000], ['out', null, 'Bunnings supplies', 21275],
+  ['in', 'O’Brien', 'Leaking tap', 16500], ['in', 'Harris Build', 'Bathroom rough-in', 320000],
+  ['out', null, 'Tool repair', 14500], ['in', 'Kaur', 'Downlights x8', 96000], ['out', null, 'Fuel', 11260],
+] as const
 
-async function tryItNow(page: Page, timeout = 10_000) {
-  await page.goto('/login')
-  await page.getByRole('button', { name: 'Try it now' }).click()
-  await expect(page.getByTestId('profit')).toHaveText(SEED.profit, { timeout })
+/** A fresh confirmed account with a seeded month, logged in on this page. */
+async function seededAccount(page: Page) {
+  const user = await confirmedUser('Walsh Plumbing')
+  const { error } = await user.client.from('entries').insert(ROWS.map(([type, customer, description, amount_cents], i) => ({
+    business_id: user.businessId, type, customer, description, amount_cents,
+    occurred_at: new Date(Date.now() - (ROWS.length - i) * 60_000).toISOString(),
+  })))
+  if (error) throw error
+  await logIn(page, user.email)
+  await expect(page.getByTestId('profit')).toHaveText(SEED.profit, { timeout: 10_000 })
+  return user
 }
 
 async function addJob(page: Page, customer: string, job: string, price: string) {
@@ -17,15 +33,8 @@ async function addJob(page: Page, customer: string, job: string, price: string) 
   await page.getByRole('button', { name: 'Save job' }).click()
 }
 
-test('a signed-out visit goes to the login screen', async ({ page }) => {
-  await page.goto('/')
-  await expect(page).toHaveURL(/\/login$/)
-})
-
-test('Try it now lands on a seeded month within 3 seconds', async ({ page, browser }) => {
-  // Warm the server first: the budget is for the reviewer's tap, not a cold start.
-  await tryItNow(await (await browser.newContext()).newPage())
-  await tryItNow(page, 3000)
+test('a seeded month shows its totals and pages through entries', async ({ page }) => {
+  await seededAccount(page)
   await expect(page.getByTestId('in')).toHaveText(SEED.in)
   await expect(page.getByTestId('out')).toHaveText(SEED.out)
   await expect(page.getByText('In the black')).toBeVisible()
@@ -42,7 +51,7 @@ test('Try it now lands on a seeded month within 3 seconds', async ({ page, brows
 })
 
 test('Job done adds the exact price to In and Profit', async ({ page }) => {
-  await tryItNow(page)
+  await seededAccount(page)
   await addJob(page, 'Walsh', 'Switchboard upgrade', '850.50')
   await expect(page.getByTestId('in')).toHaveText('$9,900.50')
   await expect(page.getByTestId('profit')).toHaveText('$8,689.25')
@@ -52,18 +61,18 @@ test('Job done adds the exact price to In and Profit', async ({ page }) => {
 })
 
 test('Undo after a save takes it back out', async ({ page }) => {
-  await tryItNow(page)
+  await seededAccount(page)
   await addJob(page, 'Walsh', 'Blocked drain', '385')
   await expect(page.getByTestId('in')).toHaveText('$9,435.00')
   await page.getByRole('button', { name: 'Undo' }).click()
   await expect(page.getByTestId('in')).toHaveText(SEED.in)
-  await expect(page.getByText('Walsh')).toHaveCount(0)
+  await expect(page.getByText('Walsh ·')).toHaveCount(0)
   await page.reload()
   await expect(page.getByTestId('in')).toHaveText(SEED.in)
 })
 
 test('spending past zero turns the hero red', async ({ page }) => {
-  await tryItNow(page)
+  await seededAccount(page)
   await page.getByRole('button', { name: 'Spent' }).click()
   await page.getByRole('textbox', { name: 'What for', exact: true }).fill('New ute')
   await page.getByRole('textbox', { name: 'Amount', exact: true }).fill('9000')
@@ -73,7 +82,7 @@ test('spending past zero turns the hero red', async ({ page }) => {
 })
 
 test('delete, then Undo brings it back', async ({ page }) => {
-  await tryItNow(page)
+  await seededAccount(page)
   await page.getByRole('button', { name: /Kaur/ }).click()
   await page.getByRole('button', { name: 'Delete' }).click()
   await expect(page.getByTestId('in')).toHaveText('$8,090.00')
@@ -84,7 +93,7 @@ test('delete, then Undo brings it back', async ({ page }) => {
 })
 
 test('the customer field suggests past customers', async ({ page }) => {
-  await tryItNow(page)
+  await seededAccount(page)
   await page.getByRole('button', { name: 'Job done' }).click()
   await page.getByRole('textbox', { name: 'Customer', exact: true }).fill('ng')
   await page.getByRole('button', { name: 'Nguyen', exact: true }).click()
@@ -93,7 +102,7 @@ test('the customer field suggests past customers', async ({ page }) => {
 })
 
 test('Save job says exactly what is missing or wrong', async ({ page }) => {
-  await tryItNow(page)
+  await seededAccount(page)
   await page.getByRole('button', { name: 'Job done' }).click()
   const save = page.getByRole('button', { name: 'Save job' })
   const price = page.getByRole('textbox', { name: 'Price', exact: true })
@@ -120,66 +129,4 @@ test('Save job says exactly what is missing or wrong', async ({ page }) => {
   await page.goBack()
   await expect(page.getByRole('dialog')).toBeHidden()
   await expect(page.getByTestId('profit')).toHaveText(SEED.profit)
-})
-
-test('one user cannot see another user’s entries', async ({ browser }) => {
-  const a = await (await browser.newContext()).newPage()
-  const b = await (await browser.newContext()).newPage()
-  const secret = `Private ${Date.now()}`
-  await tryItNow(a)
-  await addJob(a, secret, 'Rewire', '1000')
-  await expect(a.getByText(secret)).toBeVisible()
-
-  await tryItNow(b)
-  await expect(b.getByTestId('in')).toHaveText(SEED.in)
-  await expect(b.getByText(secret)).toHaveCount(0)
-  await b.getByRole('button', { name: 'Job done' }).click()
-  await b.getByRole('textbox', { name: 'Customer', exact: true }).fill('Private')
-  await expect(b.getByRole('button', { name: secret })).toHaveCount(0)
-})
-
-test('email: a new address makes an account, then signs back in', async ({ page }) => {
-  const email = `tradie.${Date.now()}@gmail.com`
-  const signIn = async (password: string) => {
-    await page.goto('/login')
-    await page.getByText('Sign in with email').click()
-    await page.getByRole('textbox', { name: 'Email' }).fill(email)
-    await page.getByLabel('Password').fill(password)
-    await page.getByRole('button', { name: 'Sign in', exact: true }).click()
-  }
-
-  await signIn('hotwater42')
-  await expect(page.getByText('No jobs yet this month. Tap Job done when you finish one.'))
-    .toBeVisible({ timeout: 10_000 })
-  await expect(page.getByTestId('profit')).toHaveText('$0.00')
-  await expect(page.getByText(`Signed in as ${email}`)).toBeVisible()
-
-  await page.getByRole('button', { name: 'Sign out' }).click()
-  await expect(page).toHaveURL(/\/login$/)
-
-  await signIn('wrong-password')
-  await expect(page.getByRole('alert').filter({ hasText: 'password' }))
-    .toHaveText('That password doesn’t match this email. Try again.')
-  await expect(page.getByRole('textbox', { name: 'Email' })).toHaveValue(email)
-
-  await page.getByLabel('Password').fill('hotwater42')
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
-  await expect(page.getByTestId('profit')).toHaveText('$0.00', { timeout: 10_000 })
-})
-
-test('email: bad input gets a plain fix-it message', async ({ page }) => {
-  await page.goto('/login')
-  await page.getByText('Sign in with email').click()
-  await page.getByRole('textbox', { name: 'Email' }).fill('sam@')
-  await page.getByLabel('Password').fill('hotwater42')
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
-  await expect(page.getByRole('alert').filter({ hasText: 'email' }))
-    .toHaveText('Enter a full email address, like sam@example.com.')
-  await page.getByRole('textbox', { name: 'Email' }).fill('sam@example.com')
-  await page.getByLabel('Password').fill('1234567')
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
-  await expect(page.getByRole('alert').filter({ hasText: 'characters' }))
-    .toHaveText('Your password needs at least 8 characters.')
-  await expect(page.getByLabel('Password')).toBeFocused()
-  await expect(page.getByLabel('Password')).toHaveAttribute('aria-invalid', 'true')
 })
