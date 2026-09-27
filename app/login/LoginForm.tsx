@@ -23,7 +23,11 @@ export default function LoginForm() {
       </form>
 
       <details className="group mt-4" open={Boolean(email.error)}
-        onToggle={(e) => e.currentTarget.open && e.currentTarget.scrollIntoView({ block: 'end', behavior: 'smooth' })}>
+        onToggle={(e) => {
+          // After the 300ms slide-open, bring the Sign in button into view.
+          const details = e.currentTarget
+          if (details.open) setTimeout(() => details.scrollIntoView({ block: 'end', behavior: 'smooth' }), 300)
+        }}>
         <summary className="flex h-12 cursor-pointer list-none items-center justify-center gap-1.5 font-medium text-steel [&::-webkit-details-marker]:hidden">
           Sign in with email
           <svg viewBox="0 0 12 12" className="size-3 transition-transform group-open:rotate-180" aria-hidden="true">

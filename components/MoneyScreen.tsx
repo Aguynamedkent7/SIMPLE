@@ -102,7 +102,7 @@ export default function MoneyScreen({ month, demo, totals, recent, show, more, c
         <RecentList entries={state.recent} onDelete={remove} more={more} show={show} />
       </section>
 
-      <div className="fixed inset-x-0 bottom-0 bg-linear-to-t from-concrete from-60% to-transparent pt-10 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+      <div className="fixed inset-x-0 bottom-0 bg-linear-to-t from-concrete from-60% to-transparent pt-10 pb-[max(0.5rem,env(safe-area-inset-bottom))] transition-[padding] duration-300 ease-out">
         <div className="mx-auto max-w-[480px] px-6">
           <Toast toast={toast} onDone={clearToast} />
           <button
@@ -111,26 +111,27 @@ export default function MoneyScreen({ month, demo, totals, recent, show, more, c
           >
             Job done
           </button>
-          <div className="mt-2 flex gap-2">
+          <div className="mt-2 flex">
             <button onClick={() => openSheet('out')}
               className="h-12 flex-1 rounded-2xl border-2 border-line bg-concrete font-semibold active:bg-line">
               Spent
             </button>
-            {scrolled && (
-              <button
-                aria-label="Back to top"
-                onClick={() => scrollTo({
-                  top: 0,
-                  behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
-                })}
-                className="grid size-12 place-items-center rounded-2xl border-2 border-line bg-concrete [animation:toast-in_200ms_ease-out] active:bg-line"
-              >
-                <svg viewBox="0 0 16 16" className="size-5" aria-hidden="true">
-                  <path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" fill="none" stroke="currentColor" strokeWidth="2"
-                    strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
-            )}
+            <button
+              aria-label="Back to top"
+              inert={!scrolled}
+              onClick={() => scrollTo({
+                top: 0,
+                behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+              })}
+              // Always rendered, so it can slide in and out instead of popping.
+              className={`grid h-12 shrink-0 place-items-center overflow-hidden rounded-2xl border-line bg-concrete transition-all duration-300 ease-[cubic-bezier(0.2,0,0,1)] active:bg-line ${
+                scrolled ? 'ml-2 w-12 border-2 opacity-100' : 'ml-0 w-0 border-0 opacity-0'}`}
+            >
+              <svg viewBox="0 0 16 16" className="size-5" aria-hidden="true">
+                <path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" fill="none" stroke="currentColor" strokeWidth="2"
+                  strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
           </div>
         </div>
       </div>
