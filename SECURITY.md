@@ -48,6 +48,10 @@ business's numbers, because Postgres refuses first.
   gets `select` on businesses, memberships and audit_log, and `select, insert, delete` on entries.
   **No `update` privilege exists anywhere.** Businesses and memberships can't be written from the
   client at all.
+- Every rule the forms check also holds in the database: CHECK constraints refuse control
+  characters in names and text, and dates in the future or before 2026. The signup trigger
+  cleans the business name. Clients can insert only the columns the app sends, so `created_by`
+  and `created_at` can't be forged. The month RPCs take only `bid`, with no timezone input.
 - `month_totals` / `month_entries` are `security invoker`, so RLS applies: pass another business's
   id and you get zeros.
 - The server never trusts a client-supplied `business_id`. `getCurrentBusiness()` (`lib/business.ts`)

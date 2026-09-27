@@ -65,9 +65,28 @@ test('a tampered server action (extra business_id) is refused and B is untouched
   })
   expect(await replay.text()).toContain('You’ve been logged out.')
 
+  // A valid payload with A's own session, but from another site: refused by the Origin check.
+  const csrf = await page.request.fetch('/', {
+    method: 'POST',
+    headers: { 'next-action': action!.id, origin: 'https://evil.example', 'content-type': 'text/plain;charset=UTF-8', accept: 'text/x-component' },
+    data: action!.body.replace(`,"business_id":"${b.businessId}"`, ''),
+  })
+  expect(csrf.status()).toBe(500)
+
   const [{ data: bRows }, { data: aRows }] = await Promise.all([
     b.client.from('entries').select('id'), a.client.from('entries').select('id'),
   ])
   expect(bRows).toEqual([])
   expect(aRows).toEqual([])
+})
+
+test('only the real static files skip the login redirect', async ({ request }) => {
+  for (const path of ['/icon.svg', '/apple-icon.png', '/icon-192.png', '/manifest.webmanifest']) {
+    expect((await request.get(path, { maxRedirects: 0 })).status(), path).toBe(200)
+  }
+  for (const path of ['/anything.png', '/robots.txt', '/x.svg']) {
+    const res = await request.get(path, { maxRedirects: 0 })
+    expect(res.status(), path).toBe(307)
+    expect(res.headers()['location'], path).toMatch(/\/login$/)
+  }
 })

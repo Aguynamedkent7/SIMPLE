@@ -211,3 +211,40 @@ describe('sessions', () => {
     }
   })
 })
+
+describe('input rules hold in the database, not just the form', () => {
+  let c: User
+  before(async () => { c = await confirmedUser('Evil\n\tCorp\u0085 <b>') })
+  const add = (row: Record<string, unknown>) =>
+    c.client.from('entries').insert({ business_id: c.businessId, type: 'out', description: 'Dated', amount_cents: 1, ...row })
+
+  test('occurred_at in the future or before 2026 is refused; an earlier time (Undo) is kept', async () => {
+    const day = 86_400_000
+    assert.equal((await add({ occurred_at: new Date(Date.now() + 5 * 365 * day).toISOString() })).error?.code, '23514')
+    assert.equal((await add({ occurred_at: '1999-01-01T00:00:00Z' })).error?.code, '23514')
+    assert.ifError((await add({ occurred_at: new Date(Date.now() - 40 * day).toISOString() })).error)
+  })
+
+  test('control characters are refused in customer and description', async () => {
+    for (const bad of ['two\nlines', 'tab\there', 'nel\u0085']) {
+      assert.equal((await add({ description: bad })).error?.code, '23514', JSON.stringify(bad))
+      assert.equal((await add({ type: 'in', customer: bad })).error?.code, '23514', JSON.stringify(bad))
+    }
+  })
+
+  test('a signup business name with control characters is cleaned, not stored', async () => {
+    const { data } = await c.client.from('businesses').select('name').single()
+    assert.equal(data!.name, 'Evil Corp <b>')
+  })
+
+  test('created_at can’t be forged', async () => {
+    assert.equal((await add({ created_at: '2026-01-02T00:00:00Z' })).error?.code, '42501')
+  })
+
+  test('month_totals takes no timezone, so a bad one is never echoed back', async () => {
+    const { error } = await c.client.rpc('month_totals', { bid: c.businessId, tz: 'Evil/Zone' })
+    assert.equal(error?.code, 'PGRST202')
+    assert.ok(!JSON.stringify(error).includes('Evil/Zone'))
+    assert.ifError((await c.client.rpc('month_totals', { bid: c.businessId }).single()).error)
+  })
+})
