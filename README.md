@@ -87,4 +87,8 @@ npm run test:e2e    # Playwright, iPhone 14 viewport, against the Supabase proje
 
 The end-to-end suite covers Try it now, adding a job, Undo, going into the red, delete and Undo,
 customer suggestions, price validation, a signed-out redirect, and that one user can't see
-another's entries. Each run creates a handful of anonymous users.
+another's entries. It runs against a production build (`next build && next start`).
+
+Each run signs in 11 anonymous users. Supabase allows 30 anonymous sign-ins per hour per IP by
+default, so a third run inside an hour fails with "Too many tries" (the app's rate-limit message).
+Raise the limit under Authentication → Rate Limits while testing if you need to.

@@ -11,8 +11,10 @@ export default defineConfig({
     baseURL: 'http://localhost:3000',
   },
   webServer: {
-    command: 'npm run dev',
+    // Production build: the 3 second "Try it now" budget is about the real app, not dev compiles.
+    command: 'npm run build && npm run start',
     url: 'http://localhost:3000/login',
     reuseExistingServer: true,
+    timeout: 180_000,
   },
 })

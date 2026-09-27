@@ -108,7 +108,7 @@ function EntryForm({ kind, customers, onSave }: {
               autoComplete="off" autoCapitalize="words" placeholder="Name" className={field} />
           </label>
           {suggestions.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-2" aria-label="Past customers">
+            <div role="group" aria-label="Past customers" className="mt-2 flex flex-wrap gap-2">
               {suggestions.map((name) => (
                 <button key={name} type="button"
                   onClick={() => { setCustomer(name); descriptionRef.current?.focus() }}
