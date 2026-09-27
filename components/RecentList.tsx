@@ -1,13 +1,16 @@
 'use client'
 
+import Link from 'next/link'
 import { useState } from 'react'
-import type { Entry } from '@/lib/entries'
+import { PAGE_SIZE, type Entry } from '@/lib/entries'
 import { formatCents } from '@/lib/money'
 
 /** This month's latest entries. Tap one to reveal Delete. */
-export default function RecentList({ entries, onDelete }: {
+export default function RecentList({ entries, onDelete, more, show }: {
   entries: Entry[]
   onDelete: (entry: Entry) => void
+  more: boolean
+  show: number
 }) {
   const [openId, setOpenId] = useState<string | null>(null)
 
@@ -45,6 +48,14 @@ export default function RecentList({ entries, onDelete }: {
           </li>
         )
       })}
+      {more && (
+        <li>
+          <Link href={`/?show=${show + PAGE_SIZE}`} replace scroll={false}
+            className="flex h-14 items-center justify-center font-semibold text-steel active:text-ink">
+            Load more
+          </Link>
+        </li>
+      )}
     </ul>
   )
 }

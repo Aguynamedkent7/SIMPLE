@@ -29,6 +29,16 @@ test('Try it now lands on a seeded month within 3 seconds', async ({ page, brows
   await expect(page.getByTestId('in')).toHaveText(SEED.in)
   await expect(page.getByTestId('out')).toHaveText(SEED.out)
   await expect(page.getByText('In the black')).toBeVisible()
+
+  // 11 seeded entries: 8 at first, Load more shows the rest, then Back to top returns.
+  const rows = page.locator('li button[aria-expanded]')
+  await expect(rows).toHaveCount(8)
+  await page.getByRole('link', { name: 'Load more' }).click()
+  await expect(rows).toHaveCount(11)
+  await expect(page.getByRole('link', { name: 'Load more' })).toHaveCount(0)
+  await page.evaluate(() => scrollTo(0, document.body.scrollHeight))
+  await page.getByRole('button', { name: 'Back to top' }).click()
+  await expect.poll(() => page.evaluate(() => scrollY)).toBe(0)
 })
 
 test('Job done adds the exact price to In and Profit', async ({ page }) => {

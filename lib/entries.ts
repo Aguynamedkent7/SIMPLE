@@ -12,4 +12,4 @@ export type Totals = { moneyIn: number; moneyOut: number }
 
 export const ENTRY_COLUMNS = 'id, type, customer, description, amount_cents, occurred_at'
 export const BUSINESS_TZ = 'Australia/Sydney'
-export const RECENT_LIMIT = 8
+export const PAGE_SIZE = 8 // recent entries shown per "Load more"
