@@ -1,6 +1,6 @@
 # One Login
 
-**Live:** _link goes here after deploy_
+**Live: https://simple-tau-gold.vercel.app**
 
 One login, one screen: this month's money in, money out, and what you kept. Built for Australian
 tradies who check their numbers on a phone, outside, between jobs. Finish a job, tap **Job done**,
@@ -77,6 +77,11 @@ In the Supabase dashboard (Authentication → Sign In / Providers):
 - Set the **Site URL** and redirect URLs to the deployed domain.
 
 For Vercel, set the same two env vars: `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`.
+`vercel.json` pins functions to `bom1` (Mumbai), next to the database in `ap-south-1`; move both
+to Sydney (`syd1` / `ap-southeast-2`) for Australian users.
+
+Supabase sees every sign-in coming from Vercel's servers, so the anonymous rate limit is shared by
+everyone using the demo, not per visitor.
 
 ## Tests
 
@@ -87,7 +92,11 @@ npm run test:e2e    # Playwright, iPhone 14 viewport, against the Supabase proje
 
 The end-to-end suite covers Try it now, adding a job, Undo, going into the red, delete and Undo,
 customer suggestions, price validation, a signed-out redirect, and that one user can't see
-another's entries. It runs against a production build (`next build && next start`).
+another's entries. It runs against a production build (`next build && next start`), or against a
+deployment with `BASE_URL=https://simple-tau-gold.vercel.app npm run test:e2e` (all 9 pass).
+
+Lighthouse, mobile, on the live site (performance / accessibility / best practices):
+login 98 / 100 / 100, money screen 96 / 100 / 100.
 
 Each run signs in 11 anonymous users. Supabase allows 30 anonymous sign-ins per hour per IP by
 default, so a third run inside an hour fails with "Too many tries" (the app's rate-limit message).
