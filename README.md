@@ -99,6 +99,7 @@ deployment with `BASE_URL=https://simple-tau-gold.vercel.app npm run test:e2e` (
 Lighthouse, mobile, on the live site (performance / accessibility / best practices):
 login 98 / 100 / 100, money screen 96 / 100 / 100.
 
-Each run signs in 11 anonymous users and creates 1 email user. Supabase allows 30 anonymous sign-ins per hour per IP by
-default, so a third run inside an hour fails with "Too many tries" (the app's rate-limit message).
+Each run signs in 11 anonymous users and creates 1 email user. Supabase allows 30 anonymous
+sign-ins per hour per IP by default, so a third run inside an hour fails with "Too many tries"
+(the app's rate-limit message).
 Raise the limit under Authentication → Rate Limits while testing if you need to.
