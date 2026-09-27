@@ -1,5 +1,6 @@
 'use server'
 
+import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
@@ -30,6 +31,9 @@ const code = z.string().trim().regex(/^\d{6}$/, 'Enter the 6-digit code from you
 const read = (form: FormData, name: string) => String(form.get(name) ?? '')
 // Turnstile puts its token in this hidden field. Supabase Auth checks it; we only pass it on.
 const captchaToken = (form: FormData) => read(form, 'cf-turnstile-response') || undefined
+// Where email links land. Supabase Auth only follows it if it's on the project's redirect allowlist.
+const confirmUrl = async (next = '') =>
+  `${(await headers()).get('origin') ?? ''}/auth/confirm${next && `?next=${next}`}`
 
 function invalid(error: z.ZodError, values: Record<string, string>): FormState {
   const issue = error.issues[0]
@@ -63,7 +67,11 @@ export async function signUp(_: FormState, form: FormData): Promise<FormState> {
     email: parsed.data.email,
     password: parsed.data.password,
     // The signup trigger makes the business from this. The user can't pick an existing one.
-    options: { data: { business_name: parsed.data.business }, captchaToken: captchaToken(form) },
+    options: {
+      data: { business_name: parsed.data.business },
+      captchaToken: captchaToken(form),
+      emailRedirectTo: await confirmUrl(),
+    },
   })
   if (error) {
     return { error: authMessage(error.code), field: error.code === 'weak_password' ? 'password' : undefined, values }
@@ -81,6 +89,7 @@ export async function requestReset(_: FormState, form: FormData): Promise<FormSt
   const supabase = await createClient()
   const { error } = await supabase.auth.resetPasswordForEmail(parsed.data, {
     captchaToken: captchaToken(form),
+    redirectTo: await confirmUrl('update-password'),
   })
   // Rate limits and the robot check say so. Nothing else tells you whether the email has an account.
   if (error && (error.code === 'captcha_failed' || error.code?.startsWith('over_'))) {

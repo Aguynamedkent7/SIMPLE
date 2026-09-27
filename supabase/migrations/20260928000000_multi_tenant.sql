@@ -2,6 +2,12 @@
 -- The database is the security boundary: every rule below holds even if the app has a bug.
 
 -- ── Round 1 out ────────────────────────────────────────────────────────────
+-- Keep real (email) accounts' entries; they move into that account's new business below.
+create temp table round1_entries on commit drop as
+  select e.id, e.user_id, e.type::text as type, e.customer, e.description, e.amount_cents,
+         e.occurred_at, e.created_at
+  from public.entries e join auth.users u on u.id = e.user_id
+  where not u.is_anonymous;
 drop function if exists public.seed_demo(text);
 drop function if exists public.month_totals(text);
 drop function if exists public.month_entries(text);
@@ -251,6 +257,12 @@ as $$
     coalesce(sum(case when e.type = 'in' then e.amount_cents else -e.amount_cents end), 0)::bigint
   from public.month_entries(bid, tz) e;
 $$;
+
+-- ── Round 1 email accounts keep their entries ─────────────────────────────
+insert into public.entries (id, business_id, created_by, type, customer, description, amount_cents, occurred_at, created_at)
+select r.id, m.business_id, r.user_id, r.type::public.entry_type, r.customer, r.description, r.amount_cents,
+       r.occurred_at, r.created_at
+from round1_entries r join public.memberships m on m.user_id = r.user_id;
 
 -- ── Privileges: deny by default ───────────────────────────────────────────
 revoke all on all tables in schema public from anon, authenticated, public;
