@@ -7,7 +7,7 @@ export default function Error({ error, retry }: { error: Error & { digest?: stri
   useEffect(() => console.error(error), [error])
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-[480px] flex-col justify-center px-6">
+    <main className="mx-auto flex min-h-svh max-w-[480px] flex-col justify-center px-6">
       <h1 className="font-sign text-[2.5rem] leading-none font-extrabold">Couldn’t load your numbers.</h1>
       <p className="mt-3 text-steel">
         Nothing you saved is lost. Check your signal, then try again.

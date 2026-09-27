@@ -84,7 +84,7 @@ export default function MoneyScreen({ month, email, totals, recent, show, more, 
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-[480px] flex-col px-6 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[calc(10rem+env(safe-area-inset-bottom))]">
+    <main className="mx-auto flex min-h-svh max-w-[480px] flex-col px-6 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[calc(10rem+env(safe-area-inset-bottom))]">
       <header className="flex items-center justify-between">
         <h1 className="font-sign text-[2rem] font-bold">{month}</h1>
         <form action={signOut}>
@@ -102,7 +102,7 @@ export default function MoneyScreen({ month, email, totals, recent, show, more, 
         <RecentList entries={state.recent} onDelete={remove} more={more} show={show} />
       </section>
 
-      <div className="fixed inset-x-0 bottom-0 bg-linear-to-t from-concrete from-60% to-transparent pt-10 pb-[max(0.5rem,env(safe-area-inset-bottom))] transition-[padding] duration-300 ease-out">
+      <div className="fixed inset-x-0 bottom-0 bg-linear-to-t from-concrete from-60% to-transparent pt-10 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         <div className="mx-auto max-w-[480px] px-6">
           <Toast toast={toast} onDone={clearToast} />
           <button
