@@ -23,7 +23,7 @@ jobs:
       - run: npm run lint
       - run: npm run test:unit
 
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
           version: latest
       # Local stack only: migrations apply from scratch on every run.
