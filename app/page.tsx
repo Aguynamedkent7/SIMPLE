@@ -4,7 +4,8 @@ import { createClient } from '@/lib/supabase/server'
 
 export default async function Home() {
   const supabase = await createClient()
-  const [totals, recent, pastCustomers] = await Promise.all([
+  const [claims, totals, recent, pastCustomers] = await Promise.all([
+    supabase.auth.getClaims(),
     supabase.rpc('month_totals', { tz: BUSINESS_TZ }).single<{ money_in: number; money_out: number }>(),
     supabase.rpc('month_entries', { tz: BUSINESS_TZ }).select(ENTRY_COLUMNS)
       .order('occurred_at', { ascending: false }).limit(RECENT_LIMIT),
@@ -12,6 +13,7 @@ export default async function Home() {
     supabase.from('entries').select('customer').eq('type', 'in')
       .order('occurred_at', { ascending: false }).limit(500).overrideTypes<{ customer: string }[]>(),
   ])
+  if (claims.error) throw claims.error
   if (totals.error) throw totals.error
   if (recent.error) throw recent.error
   if (pastCustomers.error) throw pastCustomers.error
@@ -25,6 +27,7 @@ export default async function Home() {
   return (
     <MoneyScreen
       month={new Intl.DateTimeFormat('en-AU', { month: 'long', timeZone: BUSINESS_TZ }).format()}
+      demo={claims.data?.claims.is_anonymous === true}
       totals={{ moneyIn: Number(totals.data.money_in), moneyOut: Number(totals.data.money_out) }}
       recent={recent.data as Entry[]}
       customers={customers}

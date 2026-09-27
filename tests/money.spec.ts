@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 
-// Seeded demo month (supabase/migrations: seed_demo): in $9,050, out $1,211.25.
-const SEED = { in: '$9,050', out: '$1,211.25', profit: '$7,838.75' }
+// Seeded demo month (supabase/migrations: seed_demo): in $9,050.00, out $1,211.25.
+const SEED = { in: '$9,050.00', out: '$1,211.25', profit: '$7,838.75' }
 
 async function tryItNow(page: Page, timeout = 10_000) {
   await page.goto('/login')
@@ -44,7 +44,7 @@ test('Job done adds the exact price to In and Profit', async ({ page }) => {
 test('Undo after a save takes it back out', async ({ page }) => {
   await tryItNow(page)
   await addJob(page, 'Walsh', 'Blocked drain', '385')
-  await expect(page.getByTestId('in')).toHaveText('$9,435')
+  await expect(page.getByTestId('in')).toHaveText('$9,435.00')
   await page.getByRole('button', { name: 'Undo' }).click()
   await expect(page.getByTestId('in')).toHaveText(SEED.in)
   await expect(page.getByText('Walsh')).toHaveCount(0)
@@ -66,7 +66,7 @@ test('delete, then Undo brings it back', async ({ page }) => {
   await tryItNow(page)
   await page.getByRole('button', { name: /Kaur/ }).click()
   await page.getByRole('button', { name: 'Delete' }).click()
-  await expect(page.getByTestId('in')).toHaveText('$8,090')
+  await expect(page.getByTestId('in')).toHaveText('$8,090.00')
   await page.getByRole('button', { name: 'Undo' }).click()
   await expect(page.getByTestId('in')).toHaveText(SEED.in)
   await page.reload()
@@ -92,8 +92,15 @@ test('Save job stays disabled until the price is valid', async ({ page }) => {
     await page.getByRole('textbox', { name: 'Price', exact: true }).fill(bad)
     await expect(save).toBeDisabled()
   }
+  await expect(page.getByText('Dollars and cents only')).toBeVisible()
   await page.getByRole('textbox', { name: 'Price', exact: true }).fill('850')
   await expect(save).toBeEnabled()
+  await expect(page.getByText('Dollars and cents only')).toBeHidden()
+
+  // Back (or an iOS edge swipe) closes the sheet and stays in the app.
+  await page.goBack()
+  await expect(page.getByRole('dialog')).toBeHidden()
+  await expect(page.getByTestId('profit')).toHaveText(SEED.profit)
 })
 
 test('one user cannot see another user’s entries', async ({ browser }) => {
@@ -125,7 +132,7 @@ test('email: a new address makes an account, then signs back in', async ({ page 
   await signIn('hotwater42')
   await expect(page.getByText('No jobs yet this month. Tap Job done when you finish one.'))
     .toBeVisible({ timeout: 10_000 })
-  await expect(page.getByTestId('profit')).toHaveText('$0')
+  await expect(page.getByTestId('profit')).toHaveText('$0.00')
 
   await page.getByRole('button', { name: 'Sign out' }).click()
   await expect(page).toHaveURL(/\/login$/)
@@ -137,7 +144,7 @@ test('email: a new address makes an account, then signs back in', async ({ page 
 
   await page.getByLabel('Password').fill('hotwater42')
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
-  await expect(page.getByTestId('profit')).toHaveText('$0', { timeout: 10_000 })
+  await expect(page.getByTestId('profit')).toHaveText('$0.00', { timeout: 10_000 })
 })
 
 test('email: bad input gets a plain fix-it message', async ({ page }) => {

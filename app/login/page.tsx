@@ -8,10 +8,10 @@ export default function LoginPage() {
         <path d="M17 33l10 10 20-22" fill="none" stroke="#1b2226" strokeWidth="7"
           strokeLinecap="round" strokeLinejoin="round" />
       </svg>
-      <h1 className="mt-8 font-sign text-[3.25rem] leading-[0.95] font-extrabold">
+      <h1 className="mt-8 font-sign text-[3.25rem] leading-[0.95] font-extrabold text-balance">
         Know where your month stands.
       </h1>
-      <p className="mt-4 text-steel">Money in, money out, and what you kept. One screen.</p>
+      <p className="mt-4 text-pretty text-steel">Money in, money out, and what you kept. One screen.</p>
       <LoginForm />
     </main>
   )

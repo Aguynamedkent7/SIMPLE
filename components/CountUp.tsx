@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { formatCents } from '@/lib/money'
 
 const DURATION = 700
+const DELAY = 180 // let the entry sheet finish sliding away first
 
 /** Shows cents as money; when the value changes it counts to the new one and pulses once. */
 export default function CountUp({ cents, className, testId }: {
@@ -24,22 +25,26 @@ export default function CountUp({ cents, className, testId }: {
     el.current?.animate(
       [{ transform: 'scale(1)' }, { transform: 'scale(1.04)', filter: 'brightness(1.25)' },
         { transform: 'scale(1)' }],
-      { duration: 500, easing: 'cubic-bezier(0.2, 0, 0, 1)' },
+      { duration: 500, delay: DELAY, easing: 'cubic-bezier(0.2, 0, 0, 1)' },
     )
-    const t0 = performance.now()
+    const t0 = performance.now() + DELAY
     let frame = requestAnimationFrame(function tick(now) {
-      const p = Math.min((now - t0) / DURATION, 1)
+      const p = Math.min(Math.max(now - t0, 0) / DURATION, 1)
       const eased = 1 - (1 - p) ** 3
-      // Whole dollars while moving so the width doesn't flicker between $1,234 and $1,234.56.
-      show(p < 1 ? Math.round((start + (cents - start) * eased) / 100) * 100 : cents)
+      show(p < 1 ? Math.round(start + (cents - start) * eased) : cents)
       if (p < 1) frame = requestAnimationFrame(tick)
     })
     return () => cancelAnimationFrame(frame)
   }, [cents])
 
+  // "−$1,234.56" → "−", "1,234", "56": the $ and cents are set small, like a price tag.
+  const [, minus, dollars, c] = /^(−?)\$([\d,]+)\.(\d\d)$/.exec(formatCents(shown))!
   return (
-    <span ref={el} data-testid={testId} className={`num inline-block origin-left ${className ?? ''}`}>
-      {formatCents(shown)}
+    <span ref={el} data-testid={testId}
+      className={`num inline-block origin-left whitespace-nowrap ${className ?? ''}`}>
+      {minus}<span className="mr-[0.04em] align-[0.38em] text-[0.55em]">$</span>
+      <span className="tracking-[-0.02em]">{dollars}</span>
+      <span className="align-[0.72em] text-[0.5em] opacity-90">.{c}</span>
     </span>
   )
 }

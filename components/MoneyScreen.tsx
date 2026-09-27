@@ -5,7 +5,7 @@ import { flushSync } from 'react-dom'
 import { addEntry, deleteEntry, signOut, type ActionResult } from '@/app/actions'
 import { RECENT_LIMIT, type Entry, type Totals } from '@/lib/entries'
 import EntrySheet, { type EntryKind, type NewEntry } from './EntrySheet'
-import ProfitHero from './ProfitHero'
+import ProfitHero, { label } from './ProfitHero'
 import RecentList from './RecentList'
 import Toast, { type ToastData } from './Toast'
 
@@ -26,8 +26,9 @@ function apply(state: State, change: Change): State {
     : { ...state, moneyOut: state.moneyOut + delta, recent }
 }
 
-export default function MoneyScreen({ month, totals, recent, customers }: {
+export default function MoneyScreen({ month, demo, totals, recent, customers }: {
   month: string
+  demo: boolean
   totals: Totals
   recent: Entry[]
   customers: string[]
@@ -74,6 +75,7 @@ export default function MoneyScreen({ month, totals, recent, customers }: {
   function openSheet(kind: EntryKind) {
     // Synchronous render + focus inside the tap, so iOS raises the keyboard.
     flushSync(() => setSheet(({ count }) => ({ kind, count: count + 1 })))
+    history.pushState({ ...history.state, sheet: true }, '')
     dialog.current?.showModal()
     dialog.current?.querySelector('input')?.focus()
   }
@@ -83,32 +85,36 @@ export default function MoneyScreen({ month, totals, recent, customers }: {
       <header className="flex items-center justify-between">
         <h1 className="font-sign text-[2rem] font-bold">{month}</h1>
         <form action={signOut}>
-          <button className="-mr-3 h-12 px-3 font-medium text-steel">Sign out</button>
+          <button className="-mr-3 h-12 px-3 text-[15px] font-medium text-steel">Sign out</button>
         </form>
       </header>
+      {demo && (
+        <p className="text-[15px] text-steel">Sample month to try. Signing out clears it.</p>
+      )}
 
       <ProfitHero moneyIn={state.moneyIn} moneyOut={state.moneyOut} />
 
       <section aria-labelledby="recent" className="mt-9">
-        <h2 id="recent" className="text-lg font-semibold">Recent</h2>
+        <h2 id="recent" className={label}>Recent</h2>
         <RecentList entries={state.recent} onDelete={remove} />
       </section>
 
-      <div className="fixed inset-x-0 bottom-0 bg-linear-to-t from-concrete from-75% to-transparent pt-6 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+      <div className="fixed inset-x-0 bottom-0 bg-linear-to-t from-concrete from-60% to-transparent pt-10 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         <div className="mx-auto max-w-[480px] px-6">
+          <Toast toast={toast} onDone={clearToast} />
           <button
             onClick={() => openSheet('in')}
-            className="h-16 w-full rounded-2xl bg-hivis font-sign text-[1.75rem] font-bold text-[#1b2226] shadow-[0_2px_0_rgb(0_0_0/0.12)] transition-transform active:scale-[0.98] active:bg-hivis-press"
+            className="h-16 w-full rounded-2xl bg-hivis font-sign text-[1.75rem] font-bold text-[#1b2226] shadow-(--hivis-shadow) transition-transform active:scale-[0.98] active:bg-hivis-press"
           >
             Job done
           </button>
-          <button onClick={() => openSheet('out')} className="h-12 w-full font-semibold text-steel">
+          <button onClick={() => openSheet('out')}
+            className="mt-2 h-12 w-full rounded-2xl border-2 border-line bg-concrete font-semibold active:bg-line">
             Spent
           </button>
         </div>
       </div>
 
-      <Toast toast={toast} onDone={clearToast} />
       <EntrySheet ref={dialog} kind={sheet.kind} openCount={sheet.count} customers={customers}
         onSave={(entry) => save(entry)} />
     </main>

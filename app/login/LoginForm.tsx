@@ -15,14 +15,15 @@ export default function LoginForm() {
       <form action={runDemo}>
         <button
           disabled={demoPending}
-          className="h-16 w-full rounded-2xl bg-hivis font-sign text-[1.75rem] font-bold text-[#1b2226] transition-transform active:scale-[0.98] active:bg-hivis-press disabled:opacity-70"
+          className="h-16 w-full rounded-2xl bg-hivis font-sign text-[1.75rem] font-bold text-[#1b2226] transition-transform active:scale-[0.98] active:bg-hivis-press disabled:text-[#1b2226]/60"
         >
           {demoPending ? 'Setting up…' : 'Try it now'}
         </button>
         {demo.error && <p role="alert" className="mt-3 text-red">{demo.error}</p>}
       </form>
 
-      <details className="group mt-4" open={Boolean(email.error)}>
+      <details className="group mt-4" open={Boolean(email.error)}
+        onToggle={(e) => e.currentTarget.open && e.currentTarget.scrollIntoView({ block: 'end', behavior: 'smooth' })}>
         <summary className="flex h-12 cursor-pointer list-none items-center justify-center gap-1.5 font-medium text-steel [&::-webkit-details-marker]:hidden">
           Sign in with email
           <svg viewBox="0 0 12 12" className="size-3 transition-transform group-open:rotate-180" aria-hidden="true">

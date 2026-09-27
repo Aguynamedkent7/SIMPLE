@@ -30,11 +30,9 @@ export default function RecentList({ entries, onDelete }: {
               className="flex min-h-14 min-w-0 flex-1 items-center justify-between gap-3 text-left"
             >
               <span className="truncate">{label}</span>
-              {!open && (
-                <span className={`num shrink-0 text-xl font-bold ${entry.type === 'out' ? 'text-red' : ''}`}>
-                  {formatCents(entry.type === 'out' ? -entry.amount_cents : entry.amount_cents)}
-                </span>
-              )}
+              <span className={`num shrink-0 text-xl font-bold ${entry.type === 'out' ? 'text-red' : ''}`}>
+                {formatCents(entry.type === 'out' ? -entry.amount_cents : entry.amount_cents)}
+              </span>
             </button>
             {open && (
               <button

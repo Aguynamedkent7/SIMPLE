@@ -13,11 +13,11 @@ export default function Toast({ toast, onDone }: { toast: ToastData | null; onDo
   }, [toast, onDone])
 
   return (
-    <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-[calc(9.5rem+env(safe-area-inset-bottom))] z-10 flex justify-center px-4">
+    <div aria-live="polite">
       {toast && (
         <div
           key={toast.id}
-          className="pointer-events-auto flex min-h-14 w-full max-w-[448px] items-center justify-between gap-3 rounded-2xl bg-ink py-1 pr-1 pl-5 text-concrete shadow-lg [animation:toast-in_250ms_cubic-bezier(0.2,0,0,1)]"
+          className="toast mb-3 flex min-h-14 items-center justify-between gap-3 rounded-2xl py-1 pr-1 pl-5 [animation:toast-in_250ms_cubic-bezier(0.2,0,0,1)]"
         >
           <span>{toast.message}</span>
           {toast.undo && (

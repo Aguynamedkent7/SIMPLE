@@ -4,6 +4,7 @@ import {
   useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type Ref, type RefObject,
 } from 'react'
 import { parseAmount } from '@/lib/money'
+import { label } from './ProfitHero'
 
 export type EntryKind = 'in' | 'out'
 export type NewEntry = {
@@ -34,6 +35,12 @@ export default function EntrySheet({ ref, kind, openCount, customers, onSave }: 
 }) {
   useKeyboardInset(ref)
   const drag = useSwipeDown(ref)
+  // The sheet has its own history entry (pushed on open), so Back or an iOS edge swipe closes it.
+  useEffect(() => {
+    const onBack = () => closeSheet(ref.current)
+    addEventListener('popstate', onBack)
+    return () => removeEventListener('popstate', onBack)
+  }, [ref])
 
   return (
     <dialog
@@ -41,6 +48,7 @@ export default function EntrySheet({ ref, kind, openCount, customers, onSave }: 
       aria-labelledby="sheet-title"
       className="sheet"
       onCancel={(e) => { e.preventDefault(); closeSheet(ref.current) }}
+      onClose={() => { if (history.state?.sheet) history.back() }}
       onClick={(e) => { if (e.target === ref.current) closeSheet(ref.current) }}
     >
       <div {...drag} className="touch-none px-6 pt-3 pb-1">
@@ -60,7 +68,7 @@ export default function EntrySheet({ ref, kind, openCount, customers, onSave }: 
 }
 
 const field = 'mt-1.5 h-14 w-full rounded-xl border-2 border-line bg-concrete px-4 text-[17px] ' +
-  'outline-none focus:border-ink'
+  'tracking-normal text-ink outline-none focus:border-ink'
 
 function EntryForm({ kind, customers, onSave }: {
   kind: EntryKind
@@ -74,6 +82,7 @@ function EntryForm({ kind, customers, onSave }: {
   const amountRef = useRef<HTMLInputElement>(null)
 
   const cents = parseAmount(amount)
+  const badAmount = amount.trim() !== '' && cents === null
   const valid = cents !== null && description.trim() !== '' && (kind === 'out' || customer.trim() !== '')
 
   const q = customer.trim().toLowerCase()
@@ -101,7 +110,7 @@ function EntryForm({ kind, customers, onSave }: {
     >
       {kind === 'in' && (
         <div>
-          <label className="block font-medium">
+          <label className={`block ${label}`}>
             Customer
             <input value={customer} onChange={(e) => setCustomer(e.target.value)}
               onKeyDown={(e) => nextOnEnter(e, descriptionRef)} enterKeyHint="next" maxLength={80}
@@ -112,7 +121,7 @@ function EntryForm({ kind, customers, onSave }: {
               {suggestions.map((name) => (
                 <button key={name} type="button"
                   onClick={() => { setCustomer(name); descriptionRef.current?.focus() }}
-                  className="min-h-12 rounded-full border-2 border-line px-4 font-medium active:bg-line">
+                  className="min-h-11 rounded-full border-[1.5px] border-line bg-concrete px-4 font-medium text-ink active:bg-line">
                   {name}
                 </button>
               ))}
@@ -120,25 +129,30 @@ function EntryForm({ kind, customers, onSave }: {
           )}
         </div>
       )}
-      <label className="block font-medium">
+      <label className={`block ${label}`}>
         {kind === 'in' ? 'Job' : 'What for'}
         <input ref={descriptionRef} value={description}
           onChange={(e) => setDescription(e.target.value)} onKeyDown={(e) => nextOnEnter(e, amountRef)}
           enterKeyHint="next" maxLength={80} autoComplete="off" autoCapitalize="sentences"
           placeholder={kind === 'in' ? 'Hot water system' : 'Bunnings supplies'} className={field} />
       </label>
-      <label className="block font-medium">
+      <label className={`block ${label}`}>
         {kind === 'in' ? 'Price' : 'Amount'}
         <span className="relative block">
-          <span aria-hidden="true" className="num pointer-events-none absolute top-1/2 left-4 mt-0.75 -translate-y-1/2 text-xl text-steel">$</span>
-          <input ref={amountRef} value={amount} onChange={(e) => setAmount(e.target.value)}
+          <span aria-hidden="true" className="num pointer-events-none absolute top-1/2 left-4 mt-0.75 -translate-y-1/2 text-[22px] text-steel">$</span>
+          <input ref={amountRef} value={amount}
+            onChange={(e) => setAmount(e.target.value.replace(/^\$/, ''))}
+            aria-invalid={badAmount} aria-describedby="amount-hint"
             inputMode="decimal" enterKeyHint="done" maxLength={13} autoComplete="off"
-            placeholder="0" className={`${field} num pl-9 text-xl font-bold`} />
+            placeholder="0" className={`${field} num h-16 pl-9 text-[2rem] font-extrabold`} />
         </span>
       </label>
+      <p id="amount-hint" className={`-mt-2.5 text-red ${badAmount ? '' : 'hidden'}`}>
+        Dollars and cents only, like 385 or 92.40, under $1,000,000.
+      </p>
       <button
         disabled={!valid}
-        className="mt-2 h-16 w-full rounded-2xl bg-hivis font-sign text-[1.75rem] font-bold text-[#1b2226] transition active:scale-[0.98] active:bg-hivis-press disabled:bg-line disabled:text-steel"
+        className="mt-2 h-16 w-full rounded-2xl bg-hivis font-sign text-[1.75rem] font-bold text-[#1b2226] transition active:scale-[0.98] active:bg-hivis-press disabled:bg-line disabled:text-steel/60"
       >
         {kind === 'in' ? 'Save job' : 'Save'}
       </button>
@@ -167,17 +181,18 @@ function useKeyboardInset(ref: RefObject<HTMLDialogElement | null>) {
   }, [ref])
 }
 
-/** Drag the sheet's header down past 80px to close it. */
+/** Drag the sheet's header down past 80px, or flick it, to close it. */
 function useSwipeDown(ref: RefObject<HTMLDialogElement | null>) {
   const startY = useRef<number | null>(null)
   const offset = useRef(0)
+  const last = useRef({ y: 0, t: 0, v: 0 }) // v: px per ms, downward
   const release = () => {
     const dialog = ref.current
     startY.current = null
     if (!dialog) return
-    if (offset.current > 80) return closeSheet(dialog)
+    if (offset.current > 80 || (offset.current > 10 && last.current.v > 0.5)) return closeSheet(dialog)
     dialog.animate([{ transform: dialog.style.transform }, { transform: 'translateY(0)' }],
-      { duration: 200, easing: 'cubic-bezier(0.2, 0, 0, 1)' })
+      { duration: 300, easing: 'cubic-bezier(0.32, 0.72, 0, 1)' })
     dialog.style.transform = ''
   }
   return {
@@ -186,12 +201,15 @@ function useSwipeDown(ref: RefObject<HTMLDialogElement | null>) {
     onPointerDown(e: PointerEvent) {
       startY.current = e.clientY
       offset.current = 0
+      last.current = { y: e.clientY, t: e.timeStamp, v: 0 }
       e.currentTarget.setPointerCapture(e.pointerId)
     },
     onPointerMove(e: PointerEvent) {
       const dialog = ref.current
       if (startY.current === null || !dialog) return
       offset.current = Math.max(0, e.clientY - startY.current)
+      const dt = e.timeStamp - last.current.t
+      if (dt > 0) last.current = { y: e.clientY, t: e.timeStamp, v: (e.clientY - last.current.y) / dt }
       dialog.style.transform = `translateY(${offset.current}px)`
     },
   }
