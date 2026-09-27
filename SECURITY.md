@@ -12,8 +12,11 @@ API, RPC endpoints and our Next.js server actions directly with crafted payloads
 Their goals: read, change or delete another business's entries; join another business; learn
 whether an email address has an account; keep access after being logged out.
 
-Out of scope for this demo: a compromised Supabase or Vercel account, a compromised user device,
-and denial of service beyond what Supabase and Vercel absorb by default.
+Beyond the app itself, the platform accounts are the next target. Every Supabase, Vercel,
+GitHub, Cloudflare and Resend account behind this app must have 2-step login on, `main` only changes
+through a pull request with passing CI, and no admin key exists outside the Supabase dashboard.
+Denial of service is absorbed by Vercel's and Cloudflare's edge, with Supabase Auth rate limits
+and Turnstile in front of every login, signup and reset.
 
 ## 2. Passwords
 
@@ -73,7 +76,7 @@ business's numbers, because Postgres refuses first.
 | Auth → Email templates (Confirm signup, Reset password) | Link to `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email` (`type=recovery` for reset), matching `supabase/templates/`. The default templates also work (PKCE `code` links), but only in the browser that asked. |
 | Auth → Passwords → Minimum length | 12 |
 | Auth → Passwords → Requirements | Letters and digits |
-| Auth → Passwords → Leaked password protection | On (Pro plan and above; on the Free plan it's a production step) |
+| Auth → Passwords → Leaked password protection | Pro plan feature. Next step 1 in section 8. |
 | Auth → Anonymous sign-ins | **Off** |
 | Auth → Attack protection → CAPTCHA | Cloudflare Turnstile, secret key from Cloudflare. Covers signup, sign-in and password reset. |
 | Auth → Rate limits | Defaults (sign-in/sign-up 30 per 5 min per IP; email sends limited) |
@@ -83,7 +86,7 @@ business's numbers, because Postgres refuses first.
 | API → Exposed schemas | `public` only |
 | Database → Extensions | `pg_graphql` removed (by migration) |
 | Security Advisor / Performance Advisor | Run after migrating. `supabase db lint` is clean locally. |
-| Backups | Daily backups (all plans); Point-in-Time Recovery is a paid add-on and a production step |
+| Backups | Daily backups (all plans). Point-in-Time Recovery is a Pro add-on: next step 1 in section 8. |
 
 Vercel only needs `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` and `TURNSTILE_SITE_KEY`, all server-side
 (no `NEXT_PUBLIC_` variables: nothing from the environment is baked into the JS bundle).
@@ -169,16 +172,19 @@ signup, `entry.insert` and `entry.delete` with the actor, entity id, type and am
 customer names or free text. Owners can read their own business's log. Nobody can insert, update
 or delete it through the API.
 
-## 8. Production steps not done in this demo
+## 8. Before real customers' money goes in
 
-- Paid Supabase features: leaked password protection and Point-in-Time Recovery.
-- Custom SMTP. The built-in email sender is rate-limited and meant for testing.
-- Database network restrictions and SSL enforcement for direct Postgres connections.
-- An independent penetration test.
-- SOC 2 / ISO 27001 controls: access reviews, incident response runbook, vendor assessments
-  (Supabase and Vercel both hold SOC 2 Type II).
-- Recovery codes for 2-step login. Today a lost phone needs manual help from the operator.
-- Submitting the domain to the HSTS preload list.
+Done now: custom SMTP on a verified domain (SPF, DKIM, DMARC), Turnstile, 2-step login,
+Dependabot, secret scanning with push protection, CodeQL, branch protection.
+
+Next, in this order:
+1. Supabase Pro: leaked password protection (HaveIBeenPwned) and Point-in-Time Recovery.
+2. Make 2-step login mandatory, with recovery codes so a lost phone isn't a lockout.
+3. Database network restrictions and SSL enforcement for direct Postgres connections.
+4. An independent penetration test, and fixing everything it finds before launch.
+5. Incident response runbook, quarterly access reviews and vendor assessments (Supabase and
+   Vercel both hold SOC 2 Type II), leading to SOC 2 / ISO 27001.
+6. The domain on the HSTS preload list.
 
 ## 9. Reporting a vulnerability
 
