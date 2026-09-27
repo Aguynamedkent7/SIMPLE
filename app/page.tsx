@@ -12,9 +12,9 @@ export default async function Home({ searchParams }: {
   const business = await requireBusiness(supabase)
   const [claims, totals, recent, pastCustomers] = await Promise.all([
     supabase.auth.getClaims(),
-    supabase.rpc('month_totals', { bid: business.id, tz: BUSINESS_TZ })
+    supabase.rpc('month_totals', { bid: business.id })
       .single<{ money_in: number; money_out: number }>(),
-    supabase.rpc('month_entries', { bid: business.id, tz: BUSINESS_TZ }).select(ENTRY_COLUMNS)
+    supabase.rpc('month_entries', { bid: business.id }).select(ENTRY_COLUMNS)
       .order('occurred_at', { ascending: false }).limit(show + 1), // one extra tells us there's more
     // ponytail: scans the last 500 jobs for names; a distinct SQL view if customer lists get huge.
     supabase.from('entries').select('customer').eq('business_id', business.id).eq('type', 'in')

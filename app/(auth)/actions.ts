@@ -73,7 +73,7 @@ export async function signUp(_: FormState, form: FormData): Promise<FormState> {
       emailRedirectTo: await confirmUrl(),
     },
   })
-  if (error) {
+  if (error && error.code !== 'user_already_exists') { // same "check your email" as a new address
     return { error: authMessage(error.code), field: error.code === 'weak_password' ? 'password' : undefined, values }
   }
   if (data.session) redirect('/') // only when email confirmation is off
@@ -91,8 +91,9 @@ export async function requestReset(_: FormState, form: FormData): Promise<FormSt
     captchaToken: captchaToken(form),
     redirectTo: await confirmUrl('update-password'),
   })
-  // Rate limits and the robot check say so. Nothing else tells you whether the email has an account.
-  if (error && (error.code === 'captcha_failed' || error.code?.startsWith('over_'))) {
+  // The per-IP rate limit and the robot check say so. Nothing else tells you whether the email has
+  // an account (not even over_email_send_rate_limit: Auth only sends that for real accounts).
+  if (error && (error.code === 'captcha_failed' || error.code === 'over_request_rate_limit')) {
     return { error: authMessage(error.code), values }
   }
   return { done: 'If that email has an account, we’ve sent a reset link. It works for an hour.' }
@@ -124,14 +125,13 @@ export async function verifyMfa(_: FormState, form: FormData): Promise<FormState
   redirect('/')
 }
 
-const WRONG = 'Email or password is wrong.'
+const WRONG = 'Email or password is wrong. Just signed up? Tap the link in the email we sent first.'
 
 function authMessage(code: string | undefined): string {
   switch (code) {
     case 'invalid_credentials':
+    case 'email_not_confirmed': // Auth only says this when the password was right: same answer, or it's an oracle
       return WRONG
-    case 'email_not_confirmed': // only said when the password was right, so it gives nothing away
-      return 'Confirm your email first. Tap the link we sent you, then log in.'
     case 'weak_password':
       return 'That password is too easy to guess or has shown up in a data breach. Pick another.'
     case 'same_password':

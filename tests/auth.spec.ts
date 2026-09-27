@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { logIn, openMenu } from './e2e'
-import { confirmedUser, emailToken, PASSWORD, totp, uniqueEmail } from './support'
+import { anon, confirmedUser, emailToken, PASSWORD, totp, uniqueEmail } from './support'
 
 test('a signed-out visit goes to the login screen', async ({ page }) => {
   await page.goto('/')
@@ -50,10 +50,10 @@ test('a used or fake confirm link says so', async ({ page }) => {
 test('wrong password and unknown email get the same answer', async ({ page }) => {
   const user = await confirmedUser('Echo Tiling')
   await logIn(page, user.email, 'wrong password 1')
-  await expect(page.locator('p[role=alert]')).toHaveText('Email or password is wrong.')
+  await expect(page.locator('p[role=alert]')).toContainText('Email or password is wrong.')
   await expect(page.getByRole('textbox', { name: 'Email' })).toHaveValue(user.email)
   await logIn(page, uniqueEmail('nobody'))
-  await expect(page.locator('p[role=alert]')).toHaveText('Email or password is wrong.')
+  await expect(page.locator('p[role=alert]')).toContainText('Email or password is wrong.')
   await expect(page.getByLabel('Password', { exact: true })).toHaveAttribute('autocomplete', 'current-password')
 })
 
@@ -140,4 +140,25 @@ test('2-step login: turn it on, then logging in asks for the code', async ({ pag
   await page.getByRole('textbox', { name: '6-digit code' }).fill(totp(secret))
   await page.getByRole('button', { name: 'Continue' }).click()
   await expect(page.getByText('Hotel Hvac')).toBeVisible()
+})
+
+test('an unconfirmed account gets the same login answer as a wrong password', async ({ page }) => {
+  const email = uniqueEmail('unconfirmed')
+  await anon().auth.signUp({ email, password: PASSWORD, options: { data: { business_name: 'Lima Lining' } } })
+  await logIn(page, email) // right password, email not confirmed
+  const alert = page.locator('p[role=alert]')
+  await expect(alert).toContainText('Email or password is wrong.')
+  const right = await alert.textContent()
+  await logIn(page, email, 'wrong password 1')
+  await expect(alert).toHaveText(right!)
+})
+
+test('signing up with an existing email looks the same as a new one', async ({ page }) => {
+  const user = await confirmedUser('Mike Masonry')
+  await page.goto('/signup')
+  await page.getByRole('textbox', { name: 'Business name' }).fill('Copycat')
+  await page.getByRole('textbox', { name: 'Email' }).fill(user.email)
+  await page.getByLabel('Password', { exact: true }).fill(PASSWORD)
+  await page.getByRole('button', { name: 'Create account' }).click()
+  await expect(page.getByText('Check your email to confirm your account.')).toBeVisible()
 })

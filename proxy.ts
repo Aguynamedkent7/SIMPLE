@@ -77,6 +77,7 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Pages only: skip Next internals, the manifest and static files.
-  matcher: ['/((?!_next/|manifest.webmanifest|.*\\.(?:ico|png|svg|webp|txt)$).*)'],
+  // Everything except Next's build output and the static files that really exist (app/ icons,
+  // manifest, public/). A new file in public/ must be added here, or signed-out visits redirect.
+  matcher: ['/((?!_next/static/|_next/image|manifest\\.webmanifest$|icon\\.svg$|apple-icon\\.png$|icon-192\\.png$|icon-512\\.png$|icon-maskable\\.png$).*)'],
 }
